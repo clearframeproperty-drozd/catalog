@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Каталог</title>
+<style>
+  :root{
+    --bg:#ffffff; --fg:#14151a; --muted:#7b8190; --line:#e8e9ee;
+    --card:#ffffff; --accent:#14151a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f1013; --fg:#eef0f4; --muted:#9aa1b0; --line:#262932; --card:#15171c;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--fg);
+    font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  header{
+    padding:26px 16px 14px; text-align:center; border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:var(--bg); z-index:5;
+  }
+  h1{margin:0; font-size:17px; font-weight:600; letter-spacing:.14em; text-transform:uppercase}
+  header .count{margin-top:4px; font-size:12px; color:var(--muted)}
+  main{max-width:1240px; margin:0 auto; padding:18px 16px 60px}
+  .grid{display:grid; grid-template-columns:repeat(4,1fr); gap:18px; align-items:start}
+  @media (max-width:900px){ .grid{grid-template-columns:repeat(3,1fr); gap:14px} }
+  @media (max-width:640px){ .grid{grid-template-columns:repeat(2,1fr); gap:12px} }
+  .card{background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  .ph{display:block; width:100%; border:0; padding:0; background:var(--card); cursor:zoom-in}
+  .ph img{width:100%; height:auto; display:block; background:var(--line)}
+  .meta{padding:8px 10px 10px; display:flex; align-items:baseline; justify-content:space-between; gap:8px}
+  .model{font-size:12px; color:var(--muted); letter-spacing:.04em}
+  .price{font-size:15px; font-weight:600; white-space:nowrap}
+  .price.empty{font-size:12px; font-weight:400; color:var(--muted)}
+
+  /* lightbox */
+  #lb{
+    position:fixed; inset:0; background:rgba(8,9,12,.94); display:none;
+    align-items:center; justify-content:center; z-index:50;
+  }
+  #lb.on{display:flex}
+  #lb img{max-width:94vw; max-height:86vh; object-fit:contain; border-radius:4px}
+  #lb .bar{
+    position:absolute; left:0; right:0; bottom:0; padding:14px 16px calc(14px + env(safe-area-inset-bottom));
+    color:#fff; text-align:center; font-size:14px; background:linear-gradient(transparent,rgba(0,0,0,.6));
+  }
+  #lb .bar b{font-weight:600}
+  #lb button{
+    position:absolute; background:rgba(255,255,255,.12); color:#fff; border:0;
+    width:46px; height:46px; border-radius:50%; font-size:22px; cursor:pointer; line-height:46px;
+  }
+  #lb button:hover{background:rgba(255,255,255,.22)}
+  #lbPrev{left:12px; top:50%; transform:translateY(-50%)}
+  #lbNext{right:12px; top:50%; transform:translateY(-50%)}
+  #lbClose{right:12px; top:12px; width:40px; height:40px; line-height:40px; font-size:20px}
+  @media (max-width:640px){ #lbPrev,#lbNext{width:38px;height:38px;line-height:38px;font-size:18px} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Каталог</h1>
+  <div class="count" id="count"></div>
+</header>
+
+<main><div class="grid" id="grid"></div></main>
+
+<div id="lb" role="dialog" aria-modal="true">
+  <button id="lbClose" aria-label="Закрыть">✕</button>
+  <button id="lbPrev" aria-label="Назад">‹</button>
+  <img id="lbImg" alt="">
+  <button id="lbNext" aria-label="Вперёд">›</button>
+  <div class="bar" id="lbBar"></div>
+</div>
+
+<script src="catalog.js"></script>
+<script src="prices.js"></script>
+<script>
+(function(){
+  var items = window.CATALOG || [];
+  var prices = window.PRICES || {};
+  var grid = document.getElementById('grid');
+  var NOPRICE = 'Цена по запросу';
+
+  function priceText(f){
+    var p = (prices[f] || '').toString().trim();
+    return p ? (/[^\d]/.test(p) ? p : p + ' грн') : '';
+  }
+
+  items.forEach(function(it, i){
+    var card = document.createElement('div');
+    card.className = 'card';
+
+    var btn = document.createElement('button');
+    btn.className = 'ph';
+    btn.type = 'button';
+    btn.dataset.i = i;
+
+    var img = document.createElement('img');
+    img.src = 'thumb/' + it.f;
+    if (it.w && it.h) { img.width = it.w; img.height = it.h; }
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.alt = it.m ? ('Модель ' + it.m) : 'Фото';
+    btn.appendChild(img);
+
+    var meta = document.createElement('div');
+    meta.className = 'meta';
+    var m = document.createElement('span');
+    m.className = 'model';
+    m.textContent = it.m || '';
+    var p = document.createElement('span');
+    var t = priceText(it.f);
+    p.className = 'price' + (t ? '' : ' empty');
+    p.textContent = t || NOPRICE;
+    meta.appendChild(m); meta.appendChild(p);
+
+    card.appendChild(btn); card.appendChild(meta);
+    grid.appendChild(card);
+  });
+
+  document.getElementById('count').textContent = items.length + ' позиций';
+
+  // lightbox
+  var lb = document.getElementById('lb'),
+      lbImg = document.getElementById('lbImg'),
+      lbBar = document.getElementById('lbBar'),
+      cur = 0;
+
+  function show(i){
+    cur = (i + items.length) % items.length;
+    var it = items[cur];
+    lbImg.src = 'img/' + it.f;
+    lbImg.alt = it.m ? ('Модель ' + it.m) : 'Фото';
+    var t = priceText(it.f);
+    lbBar.innerHTML = (it.m ? it.m + ' &nbsp;·&nbsp; ' : '') + '<b>' + (t || NOPRICE) + '</b>';
+    lb.classList.add('on');
+    document.body.style.overflow = 'hidden';
+    // предзагрузка соседей
+    [1, -1].forEach(function(d){
+      var n = items[(cur + d + items.length) % items.length];
+      if (n) { var im = new Image(); im.src = 'img/' + n.f; }
+    });
+  }
+  function close(){ lb.classList.remove('on'); lbImg.src = ''; document.body.style.overflow = ''; }
+
+  grid.addEventListener('click', function(e){
+    var b = e.target.closest('.ph');
+    if (b) show(+b.dataset.i);
+  });
+  document.getElementById('lbClose').onclick = close;
+  document.getElementById('lbPrev').onclick = function(e){ e.stopPropagation(); show(cur - 1); };
+  document.getElementById('lbNext').onclick = function(e){ e.stopPropagation(); show(cur + 1); };
+  lb.addEventListener('click', function(e){ if (e.target === lb || e.target === lbImg) close(); });
+  document.addEventListener('keydown', function(e){
+    if (!lb.classList.contains('on')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') show(cur - 1);
+    if (e.key === 'ArrowRight') show(cur + 1);
+  });
+
+  // свайп на телефоне
+  var x0 = null;
+  lb.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, {passive:true});
+  lb.addEventListener('touchend', function(e){
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 50) show(cur + (dx < 0 ? 1 : -1));
+    x0 = null;
+  }, {passive:true});
+})();
+</script>
+</body>
+</html>
